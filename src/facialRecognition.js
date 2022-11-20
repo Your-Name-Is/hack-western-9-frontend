@@ -1,72 +1,126 @@
-// import * as canvas from 'canvas';
-// import * as faceapi from 'face-api.js';
-const { Client } = require("pg");
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {path} from "path";
+import {fs} from "fs";
+
+const AWS = require('aws-sdk');
 
 async function recognizeFace(imageSrc, data) {
-  // const { Canvas, Image, ImageData } = canvas;
-  // faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
-  // await faceapi.nets.ssdMobilenetv1.loadFromDisk('../public');
-
-  const connectionString = "postgresql://rheamangat:2T_Xc-z3yfP-FagwG7LHXw@peewee-opossum-2765.g8z.cockroachlabs.cloud:26257/defaultdb?sslmode=verify-full";
-  const client = new Client(connectionString);
-
-  (async () => {
-    await client.connect();
-    try {
-      const results = await client.query("SELECT NOW()");
-      console.log(results);
-    } catch (err) {
-      console.error("error executing query:", err);
-    } finally {
-      client.end();
-    }
-  })();
-
-  // const cb = (err, res) => {
-  //   if (err) throw err;
-  // }
-
-  // const input = document.createElement("img");
-  // input.setAttribute("src", imageSrc);
-
-  // const faceMatcher = getFaceMatcher(input);
-  // compareFaces(client);
+  uploadSource(imageSrc);
+  compare(data);
 }
 
-// async function getFaceMatcher(referenceImage) {
-//   const referenceResult = await faceapi
-//     .detectSingleFace(referenceImage)
-//     .withFaceLandmarks()
-//     .withFaceDescriptor();
+async function uploadSource(imageSrc) {
+  const file = imageSrc;
+  const fileStream = fs.createReadStream(file);
 
-//   const matcher = new faceapi.FaceMatcher(referenceResult);
-//   return matcher;
-// }
+  const uploadParams = {
+    Bucket: "hackwestern9",
+    Name: "source.jpg",
+    Key: path.basename(file),
+    Body: fileStream,
+  };
 
-// async function compareFaces(client) {
-//   let bestMatchKey = null;
+  try {
+    const data = await S3Client.send(new PutObjectCommand(uploadParams));
+    console.log("Success", data);
+    return data;
+  } catch (err) {
+    console.log("Error", err);
+  }
+}
 
-//   const selectStatement = "SELECT firstname, picture FROM people;";
-//   const temp = await client.query(selectStatement, cb);
-//   console.log(temp);
+//Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+//PDX-License-Identifier: MIT-0 (For details, see https://github.com/awsdocs/amazon-rekognition-developer-guide/blob/master/LICENSE-SAMPLECODE.)
+
+function compare(data) {
+  const bucket = 'hackwestern9';
+  const targets = ['andrea.jpg', 'henry.jpg', 'rhea.jpg', 'victoria.jpg'];
   
-  // const singleResult = await faceapi
-  //   .detectSingleFace(queryImage)
-  //   .withFaceLandmarks()
-  //   .withFaceDescriptor();
+  const config = new AWS.Config({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION
+  });
+  AWS.config.update({region:'us-east-1'});
+  console.log(config);
 
-  // if (singleResult) {
-  //   const bestMatch = faceMatcher.findBestMatch(singleResult.descriptor);
-  //   console.log(bestMatch.toString());
-  // }
-// }
+  const client = new AWS.Rekognition();
 
-// async function retrieveInformation(key,client, cb){
-//   let temp_select = "SELECT * FROM people WHERE firstname = ";
-//   let select_stmt = temp_select.concat("'",key,"';");  
-  
-//   await client.query(select_stmt, cb);
+  targets.forEach((target) => {
+    const params = {
+      SourceImage: {
+        S3Object: {
+          Bucket: bucket,
+          Name: 'source.jpg'
+        },
+      },
+      TargetImage: {
+        S3Object: {
+          Bucket: bucket,
+          Name: target
+          },
+        },
+      SimilarityThreshold: 70
+    }
+    client.compareFaces(params, function(err, response) {
+      if (err) {
+        console.log(err, err.stack);
+      } else {
+        response.FaceMatches.forEach(data => {
+          let similarity = data.Similarity;
+          if (similarity > 85) {
+            switch (target) {
+              case 'andrea.jpg':
+                data = db[0];
+                return;
+              case 'henry.jpg':
+                data = db[1];
+                return;
+              case 'rhea.jpg':
+                data = db[2];
+                return;
+              case 'victoria.jpg':
+                data = db[3];
+                return;
+              default:
+                return;
+            }
+          }
+        });
+      }
+    });
+  });
+}
 
-// }
+const db = [
+  {
+    firstname: "Andréa",
+    lastname: "Jackson",
+    interest: "Ryan Reynolds",
+    position: "Schulich Leader",
+    picture: "https://i.imgur.com/zqH919A.jpg"
+  },
+  {
+    firstname: "Henry",
+    lastname: "Chen",
+    interest: "JA Central Ontario",
+    position: "Business Student",
+    picture: "https://i.imgur.com/zWYFcFs.jpg"
+  },
+  {
+    firstname: "Rhea",
+    lastname: "Mangat",
+    interest: "Western AI",
+    position: "Student",
+    picture: "https://i.imgur.com/hLWVB66.jpg"
+  },
+  {
+    firstname: "Victoria",
+    lastname: "Da Rosa",
+    interest: "Bill Gates",
+    position: "Computer Engineering Student",
+    picture: "https://i.imgur.com/4xNpeL4.jpg"
+  }
+];
 
 export default recognizeFace;
