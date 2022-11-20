@@ -4,7 +4,7 @@ import { Container, Row } from "react-bootstrap";
 
 function Home() {
   const videoConstraints = {
-    // facingMode: { exact: "environment" },
+    facingMode: { exact: "environment" },
     width: 2340,
     height: 1080
   };
