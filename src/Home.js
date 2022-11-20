@@ -1,13 +1,14 @@
 import React from "react";
 import Webcam from "react-webcam";
 import Connection from "./Connection";
+import { recognizeFace } from "./facialRecognition";
 import { Container, Row } from "react-bootstrap";
 
 function Home() {
   let data = null;
 
   const videoConstraints = {
-    facingMode: { exact: "environment" },
+    // facingMode: { exact: "environment" },
     width: 2340,
     height: 1080
   };
@@ -15,8 +16,9 @@ function Home() {
   const capture = React.useCallback(
     () => {
       const imageSrc = webcamRef.current.getScreenshot();
+      recognizeFace(imageSrc, data);
     },
-    [webcamRef]
+    [webcamRef, data]
   );
 
   if (data == null) {
