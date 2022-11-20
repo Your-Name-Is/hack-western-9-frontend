@@ -40,11 +40,6 @@
 
 .top-button-container-1 {
   display: flex;
-  flex-direction: column;
-}
-
-.top-button-container-2 {
-  display: flex;
   justify-content: flex-end;
 }
 
@@ -61,11 +56,6 @@
 }
 
 .bi-gear-fill {
-  font-size: 32px;
-  color: #FFF;
-}
-
-.bi-person-fill {
   font-size: 32px;
   color: #FFF;
 }
